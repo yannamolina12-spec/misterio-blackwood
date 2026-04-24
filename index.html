@@ -10,8 +10,8 @@
 
         :root {
             --bg-color: #020617;
-            --accent-color: #94a3b8;
-            --danger: #991b1b;
+            --accent: #fbbf24;
+            --noir-dark: #0f172a;
         }
 
         body {
@@ -21,9 +21,11 @@
             margin: 0;
             overflow: hidden;
             height: 100vh;
+            user-select: none;
+            touch-action: manipulation;
         }
 
-        /* Efecto de Lluvia en el fondo */
+        /* Capas de Ambiente */
         .rain {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -34,18 +36,34 @@
 
         .drop {
             position: absolute;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.15);
             width: 1px;
-            height: 50px;
+            height: 60px;
             top: -100px;
-            animation: fall 0.8s linear infinite;
+            animation: fall 0.7s linear infinite;
         }
 
-        @keyframes fall {
-            to { transform: translateY(110vh); }
+        @keyframes fall { to { transform: translateY(110vh); } }
+
+        .lightning-flash {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            opacity: 0;
+            z-index: 100;
+            pointer-events: none;
         }
 
-        /* Contenedor Principal */
+        .flash-active { animation: flashEffect 0.5s ease-out; }
+        @keyframes flashEffect {
+            0% { opacity: 0; }
+            5% { opacity: 0.8; }
+            15% { opacity: 0; }
+            20% { opacity: 0.4; }
+            100% { opacity: 0; }
+        }
+
+        /* Contenedor y Transiciones */
         #game-container {
             position: relative;
             z-index: 10;
@@ -54,351 +72,411 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
-            border-left: 1px solid #1e293b;
-            border-right: 1px solid #1e293b;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(15px);
+            border-left: 1px solid #334155;
+            border-right: 1px solid #334155;
+            box-shadow: 0 0 100px rgba(0,0,0,0.8);
         }
 
+        .scene-transition {
+            position: absolute;
+            inset: 0;
+            background: black;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .scene-transition.active { opacity: 1; }
+
         .visual-area {
-            height: 35vh;
-            background: #000;
+            height: 32vh;
+            background: radial-gradient(circle, #1e293b 0%, #000 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 5rem;
+            font-size: 6rem;
             position: relative;
-            border-bottom: 2px solid #1e293b;
+            overflow: hidden;
         }
 
         .visual-overlay {
             position: absolute;
-            bottom: 0;
-            width: 100%;
-            height: 50%;
-            background: linear-gradient(transparent, rgba(15, 23, 42, 1));
+            bottom: 0; width: 100%; height: 100%;
+            background: linear-gradient(to top, rgba(15, 23, 42, 1) 0%, transparent 60%);
         }
 
-        /* Estilo de Botones */
+        /* Interacción de Botones */
         .choice-btn {
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid #334155;
-            padding: 1rem;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+            border: 1px solid #475569;
+            padding: 1.1rem;
             text-align: left;
-            border-radius: 0.5rem;
-            transition: all 0.3s;
+            border-radius: 0.85rem;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 15px;
+            color: #cbd5e1;
+            font-size: 1.1rem;
         }
 
         .choice-btn:hover {
-            background: #334155;
-            border-color: #64748b;
-            transform: translateX(5px);
+            border-color: var(--accent);
+            transform: scale(1.02) translateX(5px);
+            color: #fff;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.1);
         }
 
-        .choice-btn:active {
-            transform: scale(0.98);
-        }
-
-        /* Teclado Numérico para Puzles */
-        .keypad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            max-width: 200px;
-            margin: 20px auto;
-        }
-
+        /* Puzles */
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 260px; margin: 15px auto; }
         .key {
             background: #1e293b;
-            padding: 15px;
+            padding: 20px;
             text-align: center;
-            border-radius: 5px;
+            border-radius: 12px;
             cursor: pointer;
+            border: 2px solid transparent;
+            transition: 0.2s;
+            font-weight: bold;
+            font-family: 'Special Elite', cursive;
+        }
+        .key:active { transform: scale(0.9); background: var(--accent); color: black; }
+
+        /* Inventario Animado */
+        .inv-slot {
+            width: 40px; height: 40px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            animation: pulseInv 2s infinite ease-in-out;
         }
 
-        /* Animaciones */
-        .fade-in { animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pulseInv {
+            0%, 100% { border-color: #334155; transform: scale(1); }
+            50% { border-color: var(--accent); transform: scale(1.05); }
+        }
 
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
     </style>
 </head>
 <body>
 
+    <div class="lightning-flash" id="flash"></div>
     <div class="rain" id="rain-layer"></div>
+    <div class="scene-transition" id="transition-curtain"></div>
 
     <div id="game-container">
-        <!-- Header -->
-        <header class="p-4 flex justify-between items-center border-b border-slate-800">
+        <!-- Header con Inventario -->
+        <header class="p-5 flex justify-between items-center border-b border-slate-800 bg-black/40">
             <div>
-                <h1 class="text-xs uppercase tracking-widest text-slate-500 font-bold">Investigación Activa</h1>
-                <p id="location-name" class="text-sm font-semibold text-slate-200 italic">Cargando...</p>
+                <h1 class="text-[9px] uppercase tracking-[0.4em] text-slate-500 font-black">Investigación #772</h1>
+                <p id="location-name" class="text-sm font-bold text-amber-500/90 tracking-wide uppercase">Cargando...</p>
             </div>
             <div id="inventory" class="flex gap-2"></div>
         </header>
 
-        <!-- Área Visual -->
+        <!-- Visualizador de Escena -->
         <div class="visual-area">
-            <span id="visual-emoji" class="fade-in">🏰</span>
+            <span id="visual-emoji" class="drop-shadow-2xl">🏰</span>
             <div class="visual-overlay"></div>
         </div>
 
-        <!-- Texto Historia -->
-        <div class="flex-grow p-6 overflow-y-auto">
-            <div id="story-box" class="space-y-4">
-                <p id="main-text" class="text-lg leading-relaxed text-slate-300"></p>
-                <div id="puzzle-area" class="hidden">
-                    <!-- Aquí se inyectan minijuegos -->
+        <!-- Narrativa Principal -->
+        <div class="flex-grow p-7 overflow-y-auto">
+            <div id="story-box" class="space-y-6">
+                <div id="main-text" class="text-xl leading-relaxed text-slate-200 font-light min-h-[120px]"></div>
+                <div id="puzzle-area" class="hidden bg-slate-900/80 p-5 rounded-2xl border border-slate-700 shadow-2xl">
+                    <!-- Se inyectan puzles aquí -->
                 </div>
             </div>
         </div>
 
-        <!-- Acciones -->
-        <div id="choices-container" class="p-4 grid gap-3 border-t border-slate-800 bg-slate-950/50">
-            <!-- Botones dinámicos -->
+        <!-- Opciones de Jugador -->
+        <div id="choices-container" class="p-6 grid gap-4 border-t border-slate-800 bg-slate-950/90">
+            <!-- Botones generados -->
         </div>
 
-        <!-- Status Bar -->
-        <div id="status-bar" class="p-3 text-[10px] uppercase tracking-tighter text-center text-slate-600 border-t border-slate-900">
-            Blackwood Case File #402 • Motor de Narrativa v2.5
+        <div class="p-2 text-[9px] uppercase tracking-widest text-center text-slate-700 bg-black border-t border-slate-900">
+            Interactive Fiction Engine • V.3.0.0
         </div>
     </div>
 
 <script>
-    // Configuración Inicial
     const state = {
         location: 'vestibulo',
         inventory: new Set(),
         flags: {
-            cajaFuerteAbierta: false,
-            mayordomoInterrogado: false,
-            vistoCuchillo: false
+            lucesOK: false,
+            cajaAbierta: false,
+            notaLeida: false,
+            finalAlternativo: false
         },
-        puzzleInput: ""
+        puzzleInput: "",
+        isTyping: false
     };
 
     const scenes = {
         vestibulo: {
-            name: "Vestíbulo Principal",
+            name: "El Hall de Entrada",
             emoji: "🏰",
-            text: "El aire huele a madera vieja y ozono. Un rayo ilumina el salón. El gran reloj de péndulo marca las 12, pero el segundero tiembla violentamente. Hay tres caminos: el estudio del Conde, la cocina de servicio o la gran biblioteca.",
+            text: "La oscuridad es casi total. El panel eléctrico a la izquierda echa chispas. Al fondo, la escalera hacia la biblioteca parece gemir bajo el viento.",
             choices: [
-                { text: "Ir al Estudio", target: "estudio", icon: "🚪" },
-                { text: "Ir a la Biblioteca", target: "biblioteca", icon: "📚" },
-                { text: "Bajar a la Cocina", target: "cocina", icon: "🍳" }
+                { text: "Reparar Fusibles", target: "puzle_fusibles", icon: "⚡" },
+                { text: "Subir a la Biblioteca", target: "biblioteca", icon: "📚" },
+                { text: "Ir a la Cocina", target: "cocina", icon: "🍳" }
             ]
         },
-        estudio: {
-            name: "Estudio del Conde",
-            emoji: "🍷",
-            text: "Un lugar sobrio. Sobre el escritorio hay una copa de vino a medio terminar y una caja fuerte empotrada en la pared. Una mancha roja en la alfombra parece demasiado oscura para ser vino.",
-            choices: [
-                { text: "Examinar Caja Fuerte", target: "puzzle_caja", icon: "🔐" },
-                { text: "Investigar la mancha", target: "mancha", icon: "🔍" },
-                { text: "Volver al vestíbulo", target: "vestibulo", icon: "⬅️" }
-            ]
-        },
-        puzzle_caja: {
-            name: "Caja Fuerte",
-            emoji: "🔢",
-            text: "La caja requiere un código de 4 dígitos. Hay una pequeña inscripción rayada en el lateral: 'El año del cuadro'.",
-            isPuzzle: "keypad",
-            solution: "1892",
-            onSolve: () => {
-                state.flags.cajaFuerteAbierta = true;
-                addItem("Testamento Real");
-            },
-            choices: [
-                { text: "Dejar la caja", target: "estudio", icon: "⬅️" }
-            ]
-        },
-        mancha: {
-            name: "La Alfombra",
-            emoji: "🩸",
-            text: "No es vino. Es sangre fresca. Sigue un rastro que se pierde bajo la estantería de libros.",
-            onEnter: () => state.flags.vistoCuchillo = true,
-            choices: [
-                { text: "Seguir el rastro", target: "pasadizo", icon: "👣" },
-                { text: "Volver al escritorio", target: "estudio", icon: "⬅️" }
-            ]
+        puzle_fusibles: {
+            name: "Panel de Fusibles",
+            emoji: "🔌",
+            text: "El sistema está bloqueado. Debes pulsar los interruptores en el orden correcto de energía: Azul, Amarillo, Rojo.",
+            isPuzzle: "sequence",
+            sequence: ["Azul", "Amarillo", "Rojo"],
+            onSolve: () => state.flags.lucesOK = true,
+            choices: [{ text: "Volver", target: "vestibulo", icon: "⬅️" }]
         },
         biblioteca: {
             name: "Gran Biblioteca",
             emoji: "📖",
-            text: "Paredes infinitas de libros. Un cuadro gigante del Conde Blackwood domina la estancia. En el marco inferior hay una fecha grabada: '1892'.",
+            text: "Los libros parecen susurrar. Con las luces encendidas, ves una mancha de tinta que apunta a un código: '04-12'. Es la fecha de la desaparición.",
+            onEnter: () => state.flags.notaLeida = true,
             choices: [
-                { text: "Mirar el cuadro", target: "cuadro_detalle", icon: "🖼️" },
-                { text: "Volver al vestíbulo", target: "vestibulo", icon: "⬅️" }
+                { text: "Bajar al Vestíbulo", target: "vestibulo", icon: "⬅️" },
+                { text: "Revisar el Escritorio", target: "escritorio", icon: "✒️" }
             ]
         },
-        cuadro_detalle: {
-            name: "Detalle del Cuadro",
-            emoji: "🖼️",
-            text: "El Conde parece señalar hacia su estudio. El año 1892 brilla bajo la luz de tu linterna.",
-            choices: [
-                { text: "Anotar la fecha e ir al estudio", target: "estudio", icon: "📝" },
-                { text: "Volver", target: "biblioteca", icon: "⬅️" }
-            ]
+        escritorio: {
+            name: "Escritorio del Conde",
+            emoji: "🔐",
+            text: "Un pequeño teclado digital bloquea el cajón secreto. 'Día y Mes de la Tragedia', reza un grabado.",
+            isPuzzle: "keypad",
+            solution: "0412",
+            onSolve: () => addItem("Daga de Plata"),
+            choices: [{ text: "Alejarse", target: "biblioteca", icon: "⬅️" }]
         },
         cocina: {
-            name: "Cocina Sombría",
+            name: "Cocina de Servicio",
             emoji: "🔪",
-            text: "El mayordomo está limpiando un cuchillo de plata. Se detiene en seco al verte. Sus manos tiemblan ligeramente.",
+            text: "El mayordomo te observa desde las sombras. 'No debería estar aquí, detective'. Su mano derecha está oculta tras su espalda.",
             choices: [
-                { text: "Interrogar al Mayordomo", target: "interrogatorio", icon: "❓" },
-                { text: "Subir al vestíbulo", target: "vestibulo", icon: "⬅️" }
+                { text: "Enfrentarlo", target: "confrontacion", icon: "🕵️" },
+                { text: "Escapar al Hall", target: "vestibulo", icon: "⬅️" }
             ]
         },
-        interrogatorio: {
-            name: "Cuestionamiento",
-            emoji: "👨‍💼",
-            text: "—'¿Se le ofrece algo, detective? El Conde está... indispuesto'— dice con voz gélida. Notas que le falta un gemelo en la manga derecha.",
-            onEnter: () => state.flags.mayordomoInterrogado = true,
-            choices: [
-                { text: "Preguntar por la mancha del estudio", target: "acusacion_previa", icon: "🩸" },
-                { text: "Regresar", target: "cocina", icon: "⬅️" }
-            ]
-        },
-        acusacion_previa: {
-            name: "Tensión",
-            emoji: "⚡",
-            text: "El mayordomo se pone pálido. '¿Sangre? No sé de qué habla'. Si tienes pruebas suficientes, podrías confrontarlo.",
-            condition: () => state.inventory.has("Testamento Real") && state.flags.vistoCuchillo,
-            targetIfTrue: "final_victoria",
-            choices: [
-                { text: "Necesito más pruebas...", target: "cocina", icon: "⬅️" }
-            ]
-        },
-        final_victoria: {
-            name: "Caso Cerrado",
+        confrontacion: {
+            name: "El Momento de la Verdad",
             emoji: "⚖️",
-            text: "Presentas el Testamento donde el Conde te nombraba albacea y el rastro de sangre. El mayordomo confiesa: intentó ocultar el testamento para quedarse con la mansión. ¡Has ganado!",
-            choices: [{ text: "Reiniciar Misterio", target: "vestibulo", isReset: true, icon: "🔄" }]
+            text: "El mayordomo avanza. 'El secreto de los Blackwood morirá con usted'. ¿Tienes pruebas para detenerlo?",
+            condition: () => state.inventory.has("Daga de Plata") && state.flags.notaLeida,
+            targetIfTrue: "final_bueno",
+            choices: [{ text: "¡No tengo nada!", target: "final_malo", icon: "💀" }]
+        },
+        final_bueno: {
+            name: "Justicia",
+            emoji: "🎖️",
+            text: "Muestras la Daga de Plata y mencionas la fecha. El mayordomo se derrumba. Has resuelto el crimen más famoso del siglo. Eres una leyenda.",
+            choices: [{ text: "Volver a empezar", target: "vestibulo", isReset: true, icon: "🔄" }]
+        },
+        final_malo: {
+            name: "Desaparición",
+            emoji: "🌑",
+            text: "Sin pruebas, nadie te creerá. El mayordomo sonríe mientras la oscuridad te envuelve. Te has convertido en otro secreto de la mansión.",
+            choices: [{ text: "Intentar de nuevo", target: "vestibulo", isReset: true, icon: "🔄" }]
         }
     };
 
-    // Lógica del Motor
+    function typeWriter(text, element) {
+        state.isTyping = true;
+        element.textContent = "";
+        let i = 0;
+        function step() {
+            if (i < text.length) {
+                element.textContent += text.charAt(i);
+                i++;
+                setTimeout(step, 25);
+            } else {
+                state.isTyping = false;
+            }
+        }
+        step();
+    }
+
+    function triggerLightning() {
+        const f = document.getElementById('flash');
+        f.classList.add('flash-active');
+        setTimeout(() => f.classList.remove('flash-active'), 500);
+        document.getElementById('game-container').classList.add('shake');
+        setTimeout(() => document.getElementById('game-container').classList.remove('shake'), 400);
+    }
+
+    async function changeScene(target) {
+        const curtain = document.getElementById('transition-curtain');
+        curtain.classList.add('active');
+        
+        await new Promise(r => setTimeout(r, 400));
+        state.location = target;
+        if (scenes[target].onEnter) scenes[target].onEnter();
+        render();
+        
+        curtain.classList.remove('active');
+    }
+
     function render() {
         const scene = scenes[state.location];
-        
-        // UI Básica
         document.getElementById('location-name').textContent = scene.name;
         document.getElementById('visual-emoji').textContent = scene.emoji;
         
         const mainText = document.getElementById('main-text');
-        mainText.classList.remove('fade-in');
-        void mainText.offsetWidth;
-        mainText.classList.add('fade-in');
-        mainText.textContent = scene.text;
+        typeWriter(scene.text, mainText);
 
-        // Puzles
-        const puzzleArea = document.getElementById('puzzle-area');
-        if (scene.isPuzzle === "keypad") {
-            puzzleArea.classList.remove('hidden');
-            renderKeypad(scene);
-        } else {
-            puzzleArea.classList.add('hidden');
+        const pArea = document.getElementById('puzzle-area');
+        pArea.innerHTML = "";
+        pArea.classList.add('hidden');
+
+        // Lógica de Puzles
+        if (scene.isPuzzle === "sequence" && !state.flags.lucesOK) {
+            pArea.classList.remove('hidden');
+            const colors = ["Amarillo", "Azul", "Rojo"];
+            pArea.innerHTML = `<p class="text-xs text-slate-500 mb-4 uppercase">Secuencia de Carga: Azul-Amarillo-Rojo</p>`;
+            colors.forEach(c => {
+                const b = document.createElement('button');
+                b.className = "w-full p-3 mb-2 rounded-lg bg-slate-800 border border-slate-600 font-bold";
+                b.textContent = `Interruptor ${c}`;
+                b.onclick = () => {
+                    if (c === scene.sequence[state.puzzleInput.length]) {
+                        state.puzzleInput += "1";
+                        b.style.borderColor = "#fbbf24";
+                        if (state.puzzleInput.length === 3) {
+                            scene.onSolve();
+                            state.puzzleInput = "";
+                            triggerLightning();
+                            alert("¡SISTEMA RESTAURADO!");
+                            render();
+                        }
+                    } else {
+                        state.puzzleInput = "";
+                        triggerLightning();
+                        alert("ERROR: SOBRECARGA");
+                        render();
+                    }
+                };
+                pArea.appendChild(b);
+            });
         }
 
-        // Botones
-        const choicesContainer = document.getElementById('choices-container');
-        choicesContainer.innerHTML = '';
+        if (scene.isPuzzle === "keypad") {
+            pArea.classList.remove('hidden');
+            renderKeypad(scene);
+        }
 
-        scene.choices.forEach(c => {
-            if (c.condition && !c.condition()) return;
-            
+        // Botones de Acción
+        const container = document.getElementById('choices-container');
+        container.innerHTML = "";
+        
+        // Lógica de condición especial para confrontación
+        let currentChoices = scene.choices;
+        if (scene.targetIfTrue && scene.condition()) {
+            currentChoices = [{ text: "¡Arrestar al Mayordomo!", target: scene.targetIfTrue, icon: "⚔️" }];
+        }
+
+        currentChoices.forEach(c => {
             const btn = document.createElement('button');
             btn.className = "choice-btn";
             btn.innerHTML = `<span>${c.icon}</span> <span>${c.text}</span>`;
             btn.onclick = () => {
+                if (state.isTyping) return;
                 if (c.isReset) resetGame();
-                state.location = c.targetIfTrue && c.condition() ? c.targetIfTrue : c.target;
-                if (scenes[state.location].onEnter) scenes[state.location].onEnter();
-                render();
+                changeScene(c.target);
             };
-            choicesContainer.appendChild(btn);
+            container.appendChild(btn);
         });
 
-        updateInventoryUI();
+        updateInventory();
     }
 
     function renderKeypad(scene) {
-        const puzzleArea = document.getElementById('puzzle-area');
-        puzzleArea.innerHTML = `
-            <div class="text-center font-mono text-2xl tracking-widest mb-4 p-2 bg-black border border-slate-700">
-                ${state.puzzleInput.padEnd(4, '_')}
+        const pArea = document.getElementById('puzzle-area');
+        pArea.innerHTML = `
+            <div class="text-center font-mono text-3xl mb-4 p-3 bg-black text-amber-500 border-2 border-amber-900 rounded-lg shadow-inner">
+                ${state.puzzleInput.padEnd(4, '•')}
             </div>
             <div class="keypad">
-                ${[1,2,3,4,5,6,7,8,9,'C',0,'OK'].map(key => `
-                    <div class="key hover:bg-slate-700 active:bg-slate-600" onclick="handleKey('${key}', '${scene.solution}')">${key}</div>
+                ${[1,2,3,4,5,6,7,8,9,'C',0,'OK'].map(k => `
+                    <div class="key" onclick="handleKey('${k}', '${scene.solution}')">${k}</div>
                 `).join('')}
             </div>
         `;
     }
 
-    window.handleKey = (key, solution) => {
-        if (key === 'C') state.puzzleInput = "";
-        else if (key === 'OK') {
-            if (state.puzzleInput === solution) {
-                const scene = scenes[state.location];
-                if (scene.onSolve) scene.onSolve();
+    window.handleKey = (k, sol) => {
+        if (k === 'C') state.puzzleInput = "";
+        else if (k === 'OK') {
+            if (state.puzzleInput === sol) {
+                scenes[state.location].onSolve();
+                alert("CAJÓN ABIERTO: Encontraste la Daga.");
                 state.puzzleInput = "";
-                alert("¡CLACK! La caja se abre.");
-                state.location = "estudio";
-                render();
+                changeScene("biblioteca");
             } else {
-                alert("Código incorrecto");
                 state.puzzleInput = "";
+                triggerLightning();
             }
-        } else {
-            if (state.puzzleInput.length < 4) state.puzzleInput += key;
+        } else if (state.puzzleInput.length < 4) {
+            state.puzzleInput += k;
         }
         render();
     };
 
-    function addItem(item) {
-        state.inventory.add(item);
-        updateInventoryUI();
+    function addItem(it) {
+        state.inventory.add(it);
+        updateInventory();
     }
 
-    function updateInventoryUI() {
+    function updateInventory() {
         const inv = document.getElementById('inventory');
-        inv.innerHTML = '';
-        state.inventory.forEach(item => {
-            const dot = document.createElement('div');
-            dot.className = "w-8 h-8 bg-amber-600/30 border border-amber-500 rounded-full flex items-center justify-center text-xs";
-            dot.innerHTML = item === "Testamento Real" ? "📜" : "🗝️";
-            dot.title = item;
-            inv.appendChild(dot);
+        inv.innerHTML = "";
+        state.inventory.forEach(it => {
+            const slot = document.createElement('div');
+            slot.className = "inv-slot";
+            slot.innerHTML = it === "Daga de Plata" ? "🗡️" : "📦";
+            inv.appendChild(slot);
         });
     }
 
     function resetGame() {
         state.inventory = new Set();
-        state.flags = { cajaFuerteAbierta: false, mayordomoInterrogado: false, vistoCuchillo: false };
-        state.location = "vestibulo";
+        state.flags = { lucesOK: false, cajaAbierta: false, notaLeida: false };
+        state.puzzleInput = "";
     }
 
-    // Efecto de Lluvia Dinámica
-    function createRain() {
-        const rainLayer = document.getElementById('rain-layer');
+    function initRain() {
+        const l = document.getElementById('rain-layer');
         for (let i = 0; i < 50; i++) {
-            const drop = document.createElement('div');
-            drop.className = 'drop';
-            drop.style.left = Math.random() * 100 + 'vw';
-            drop.style.animationDuration = (Math.random() * 0.5 + 0.5) + 's';
-            drop.style.animationDelay = Math.random() * 2 + 's';
-            rainLayer.appendChild(drop);
+            const d = document.createElement('div');
+            d.className = 'drop';
+            d.style.left = Math.random() * 100 + 'vw';
+            d.style.animationDuration = (0.5 + Math.random() * 0.5) + 's';
+            d.style.animationDelay = Math.random() * 2 + 's';
+            l.appendChild(d);
         }
     }
 
     window.onload = () => {
-        createRain();
+        initRain();
         render();
+        setInterval(() => { if (Math.random() > 0.98) triggerLightning(); }, 4000);
     };
 </script>
 </body>
